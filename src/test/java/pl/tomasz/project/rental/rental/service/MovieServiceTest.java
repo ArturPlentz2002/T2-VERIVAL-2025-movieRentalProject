@@ -36,16 +36,85 @@ public class MovieServiceTest {
     @Mock
     RentedMovieService rentedMovieService;
     private MovieMapper movieMapper = new MovieMapper();
+    
     @Before
     public void createMovieServiceObject(){
         movieService = new MovieService(movieMapper, movieRepository, userRepository,
                 rentedMoviesRepository, rentedMovieService);
     }
+    
     @Before
     public void createMovieObject(){
-         movie = new Movie(1L, "Mohawk", MovieType.NEW_MOVIE, "action",
+          movie = new Movie(1L, "Mohawk", MovieType.NEW_MOVIE, "action",
                 2018, true, userRatings);
     }
+    
+    //---------------------------------------------------------
+    // NOVOS TESTES UNITÁRIOS PARA AUMENTO DE COBERTURA E BVA
+    //---------------------------------------------------------
+    
+    /**
+     * Teste de Análise de Valor Limite (BVA) e Partição de Equivalência.
+     * Verifica o comportamento para 0 dias (limite inválido) e 1 dia (limite válido mínimo),
+     * assumindo a lógica de cobrança do sistema.
+     */
+    @Test
+    public void shouldHandleZeroAndSingleDayRentalTest(){
+        // Given
+        MovieType movieTypeNew = MovieType.NEW_MOVIE;
+        
+        // When & Then - Zero Days (Partição Inválida)
+        // Se a lógica não lançar exceção, deve retornar 0.
+        assertEquals(0, movieService.priceOfMovie(movieTypeNew, 0)); 
+
+        // When & Then - One Day (Partição Válida Mínima)
+        // Baseado nos testes originais (3 dias = 20, 5 dias = 40), a cobrança mínima para NEW_MOVIE é 20.
+        assertEquals(20, movieService.priceOfMovie(movieTypeNew, 1)); 
+    }
+    
+    /**
+     * Teste de Exceção (Teste de Caminho de Falha).
+     * Garante que o método falhe e lance a exceção esperada para dias negativos (Partição Inválida).
+     */
+    @Test(expected = IllegalArgumentException.class) 
+    public void shouldThrowExceptionGivenNegativeDaysTest(){
+        //Given
+        MovieType movieTypeNew = MovieType.NEW_MOVIE;
+        
+        //When
+        movieService.priceOfMovie(movieTypeNew, -1);
+        
+        //Then (A exceção é esperada e lançada, cobrindo o caminho de falha)
+    }
+    
+    /**
+     * Teste de Caminho de Falha (Path Testing) para a função rentMovie.
+     * Cobre o cenário onde a regra de negócio 'Filme Disponível' falha.
+     */
+    @Test
+    public void shouldFailRentMovieWhenMovieIsUnavailable() {
+        //Given
+        User user = new User(1L,"Jack", "Sparrow", 1);
+        
+        // Cria um filme indisponível (isAvailable = false)
+        Movie unavailableMovie = new Movie(2L, "Taken", MovieType.BASIC_MOVIE, "action",
+                2018, false, new ArrayList<>());
+        
+        when(movieRepository.findById(2L)).thenReturn(Optional.of(unavailableMovie));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        
+        //When
+        String text = movieService.rentMovie(2L, 1L);
+        
+        //Then
+        // O método deve retornar a mensagem de erro da regra de negócio.
+        assertEquals("Movie is currently unavailable", text); 
+    }
+    
+    //---------------------------------------------------------
+    // TESTES ORIGINAIS (MANTIDOS)
+    //---------------------------------------------------------
+    
     @Test
     public void priceOfNewMovieTest(){
         //Given
@@ -59,6 +128,7 @@ public class MovieServiceTest {
         assertEquals(priceOfNew1, 20);
         assertEquals(priceOfNew2, 40);
     }
+    
     @Test
     public void priceOfBasicMovieTest(){
         //Given
@@ -72,6 +142,7 @@ public class MovieServiceTest {
         assertEquals(priceOfBasic1, 15);
         assertEquals(priceOfBasic2, 30);
     }
+    
     @Test
     public void priceOfOldMovieTest(){
         //Given
@@ -85,6 +156,7 @@ public class MovieServiceTest {
         assertEquals(priceOfOld1, 10);
         assertEquals(priceOfOld2, 20);
     }
+    
     @Test
     public void shouldRentMovie() {
         //Given
@@ -96,6 +168,7 @@ public class MovieServiceTest {
         //Then
         assertEquals("Jack Sparrow rented Mohawk", text);
     }
+    
     @Test
     public void shouldGetMovieById(){
         //Given
@@ -106,6 +179,7 @@ public class MovieServiceTest {
         assertThat(result.getId(), is(1L));
 
     }
+    
     @Test
     public void shouldFindMovieByWord(){
         //Given
@@ -118,6 +192,7 @@ public class MovieServiceTest {
         //Then
         assertEquals(1, quantityOfMovies );
     }
+    
     @Test
     public void shouldCheckAgeRestriction(){
         //Given
@@ -127,6 +202,7 @@ public class MovieServiceTest {
         //Then
         assertTrue(result);
     }
+    
     @Test
     public void shouldGetRatingOfMovie(){
         //Given
@@ -141,6 +217,7 @@ public class MovieServiceTest {
         //Then
         assertEquals(10, result, 0.1);
     }
+    
     @Test
     public void shouldAddMovie(){
         //Given
@@ -151,6 +228,7 @@ public class MovieServiceTest {
         verify(movieRepository, times(1)).save(movie);
 
     }
+    
     @Test
     public void shouldUpdateMovie(){
         //Given
@@ -162,6 +240,7 @@ public class MovieServiceTest {
         //Then
         assertEquals(movieDto, resultMovie);
     }
+    
     @Test
     public void shouldDeleteMovie(){
         //Given
@@ -173,6 +252,7 @@ public class MovieServiceTest {
         verify(movieRepository, times(1)).delete(movie);
 
     }
+    
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowExceptionGivenNullMovieId(){
         //Given
@@ -181,6 +261,7 @@ public class MovieServiceTest {
         //When
         movieService.updateMovie(movieDto);
     }
+    
     @Test
     public void shouldGetMovieByYear(){
         //Given
@@ -192,6 +273,7 @@ public class MovieServiceTest {
         //Then
         assertEquals(1, myChoosenYearList.size());
     }
+    
     @Test
     public void shouldGetMoviesByCategorie(){
         //Given
@@ -206,6 +288,7 @@ public class MovieServiceTest {
         //Then
         assertEquals(1, myChoosenCategorie.size());
     }
+    
     @Test
     public void shouldReturnMovie(){
         //Given
@@ -217,6 +300,7 @@ public class MovieServiceTest {
         //Then
         assertEquals(text, "Jack Sparrow returned Mohawk");
     }
+    
     @Test
     public void shouldGetAllMovies(){
         //Given
@@ -228,6 +312,7 @@ public class MovieServiceTest {
         //Then
         assertEquals(1, myMovies.size());
     }
+    
     @Test
     public void getMovieByMovieType(){
         //Given
