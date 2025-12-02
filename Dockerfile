@@ -15,7 +15,7 @@ COPY gradle /build/gradle
 RUN chmod +x gradlew
 
 # Executa o build
-RUN ./gradlew build --no-daemon
+#RUN ./gradlew build --no-daemon
 
 # Estágio 2: RUNTIME
 FROM eclipse-temurin:11-jre-focal
